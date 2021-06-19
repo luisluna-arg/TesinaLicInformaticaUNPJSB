@@ -212,7 +212,7 @@ export default {
         let firstCell = getCell(_Cells.path[0]);
 
         clearPointer();
-        pointerPosition.value = firstCell.getCoordinates();
+        pointerPosition.value = firstCell.value.getCoordinates();
         firstCell.value.HasPointer = true;
 
         isFinished.value = false;
