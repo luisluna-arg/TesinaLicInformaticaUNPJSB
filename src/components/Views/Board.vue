@@ -206,7 +206,7 @@ export default {
         isFinished.value = true;
 
         /* Set timeout for a message display and a pointer reboot */
-        alert("Llegaste a la meta!! Felicidades");
+        alert("Llegaste a la meta!! Felicidades!!");
 
         /* Game finished, move to the first cell */
         let firstCell = getCell(_Cells.path[0]);
