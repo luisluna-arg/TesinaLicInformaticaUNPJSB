@@ -1,4 +1,4 @@
-# eeg-maze
+# vue-maze
 
 ## Project setup
 ```
