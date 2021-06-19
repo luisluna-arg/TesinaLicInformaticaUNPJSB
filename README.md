@@ -1,4 +1,7 @@
-# vue-maze
+# eeg-maze
+
+## Vercel Link
+https://eeg-maze.vercel.app/
 
 ## Project setup
 ```
