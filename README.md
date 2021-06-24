@@ -10,5 +10,5 @@ http://developer.neurosky.com/docs/doku.php?id=thinkgear_socket_protocol
 
 
  # Neurosky communication Rest Api
- Little api to get headset data in real time
+ Little api with node + express + morgan to get headset data in real time
 
