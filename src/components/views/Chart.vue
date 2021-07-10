@@ -1,7 +1,7 @@
 <template>
 <div>
     <div id="input-bar">
-    <label>Intervalo de actualización: </label>
+    <label>Intervalo de actualización (ms): </label>
     <input v-model.number="updateInterval" type="number" />
     <label>Cant. muestras: </label>
     <input v-model.number="sampleCount" type="number" />
