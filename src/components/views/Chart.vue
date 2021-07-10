@@ -1,5 +1,6 @@
 <template>
-  <div id="input-bar">
+<div>
+    <div id="input-bar">
     <label>Intervalo de actualización: </label>
     <input v-model.number="updateInterval" type="number" />
     <label>Cant. muestras: </label>
@@ -8,6 +9,7 @@
   <div class="chart-wrapper">
     <canvas :id="CHART_DOM_ID"></canvas>
   </div>
+</div>
 </template>
 
 <script>
@@ -207,14 +209,6 @@ createRequest = function () {
     setTimeout(createRequest, updateInterval.value);
   });
 };
-
-function startDataRequest() {
-  /* First request is manual and immediate, later will be automatic by interval */
-  getData().then(processChartRequest);
-  setInterval(() => {
-    getData().then(processChartRequest);
-  }, updateInterval.value);
-}
 
 /* //////////////////////////////////////////////////// */
 
