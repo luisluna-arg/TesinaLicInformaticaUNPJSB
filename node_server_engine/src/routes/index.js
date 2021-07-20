@@ -19,6 +19,14 @@ router.get("/test", (req, res) => {
     res.json(responseSamples);
 });
 
+router.get("/all", (req, res) => {
+    res.json(responseSamples);
+});
+
+router.get("/last", (req, res) => {
+    res.json(responseSamples[responseSamples - 1]);
+});
+
 router.get("/", (req, res) => {
     const data = {
         "name": "test",
