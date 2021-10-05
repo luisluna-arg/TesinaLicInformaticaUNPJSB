@@ -1,10 +1,15 @@
 const express = require('express');
+const cors = require('cors');
+
 const app = express();
 const morgan = require('morgan');
 
 //settings
 app.set('port', process.env.PORT || 13854);
 app.set('json spaces', 2);
+
+/* Allow cross origin requests */
+app.use(cors());
 
 //middleware
 app.use(morgan('dev'));
