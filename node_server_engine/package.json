@@ -1,4 +1,27 @@
 {
+<<<<<<< HEAD
+  "name": "tesis-node_server_engine",
+  "version": "1.0.0",
+  "main": "crud.js",
+  "scripts": {
+    "dev": "nodemon ./src/crud.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "CRUD",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "firebase": "^9.6.1",
+    "firebase-admin": "^10.0.0",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7"
+  },
+  "type": "module"
+=======
     "name": "tesis-node_server_engine",
     "version": "1.0.0",
     "main": "index.js",
@@ -15,6 +38,7 @@
         "morgan": "^1.10.0"
     },
     "devDependencies": {
-        "nodemon": "^2.0.7"
+        "nodemon": "^2.0.14"
     }
+>>>>>>> 045e7e94171dd8dc9677e2a83f0b5e5897bc7231
 }

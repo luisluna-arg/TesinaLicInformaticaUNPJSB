@@ -16,6 +16,7 @@ app.use(morgan('dev'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+//Use it as a service
 //routers
 app.use(require("./routes/index"));
 
