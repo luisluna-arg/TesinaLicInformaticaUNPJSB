@@ -2,41 +2,31 @@ const { Router } = require('express');
 const router = Router();
 const headsetClient = require("../lib");
 const assert = require("assert");
-const { DecisionTreeModel } = require('./src/decisionTree/decision-tree-model');
-const MiscUtils = require('./src/decisionTree/misc-utils');
+
+// Include file system to write json data
+var fs = require('fs')
+const logger = fs.createWriteStream('./db/restApiTest.json', {
+    flags: 'a' // 'a' means appending (old data will be preserved)
+})
 
 const responseSamples = [];
 const client = headsetClient.createClient();
 client.on("data", (sensedData) => {
     let sample = {
-        data: {
-            ts: (new Date).toISOString(),
-        }
+        ts: (new Date).toISOString()
     };
-    responseSamples.push({...sample, ...sensedData });
+    responseSamples.push({ ...sample, ...sensedData });
 });
 client.connect();
 
-router.get("/test", (req, res) => {
-    res.json(responseSamples);
-});
-
 router.get("/all", (req, res) => {
-    res.json(responseSamples);
+    var requestSize = !!req.query.size ? parseInt(req.query.size) : 0;
+    var sampleCount = responseSamples.length;
+    res.json(responseSamples.slice(requestSize > sampleCount ? 0 : sampleCount - requestSize));
 });
 
-router.get("/last", (req, res) => {
-
-    res.json(responseSamples[responseSamples - 1]);
-});
-
-router.get("/getDirection", (req, res) => {
-    let sample = responseSamples[responseSamples - 1],
-        eeg = sample.eegPower,
-        signals = [eeg.delta, eeg.theta, eeg.lowAlpha, eeg.highAlpha, eeg.lowBeta, eeg.highBeta, eeg.lowGamma, eeg.highGamma],
-        model = new DecisionTreeModel('./data');
-    result = model.predict(signals);
-    res.json(result);
+router.get("/single", (req, res) => {
+    res.json(responseSamples[responseSamples.length - 1]);
 });
 
 router.get("/", (req, res) => {
