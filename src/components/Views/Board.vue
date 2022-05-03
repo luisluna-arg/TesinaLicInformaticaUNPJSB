@@ -25,6 +25,13 @@
 <script>
 import { ref } from "vue";
 import Cell from "./Cell.vue";
+import axios from "axios";
+
+const CONSTANTS = {
+  DATA_URL: "http://localhost:13854/all",
+  DIRECTION_URL: "http://localhost:13854/getDirection",
+  UPDATE_INTERVAL: 1000,
+};
 
 const Direction = {
   Up: 0,
@@ -35,6 +42,12 @@ const Direction = {
 
 const _Rows = 10;
 const _Columns = 10;
+
+let LIVE_VALUES = {
+  DIRECTION_URL: CONSTANTS.DIRECTION_URL, //+ "?size=" + CONSTANTS.MAX_SAMPLE_COUNT,
+};
+
+let dataUrl = ref(LIVE_VALUES.DIRECTION_URL);
 
 /* Contains the definition for special cells */
 const _Cells = {
@@ -105,6 +118,21 @@ const BoardCell = function (isPath, isEmpty, row, col, hasPointer) {
   };
 };
 
+function processChartRequest(response) {
+  const data = response.data;
+  if (typeof data != "undefined" && data != null) {
+    console.log(data);
+  }
+}
+
+let createRequest;
+createRequest = function () {
+  axios.get(dataUrl.value).then((response) => {
+    processChartRequest(response);
+    setTimeout(createRequest, CONSTANTS.UPDATE_INTERVAL);
+  });
+};
+
 export default {
   components: {
     Cell,
@@ -117,6 +145,7 @@ export default {
       if (s.key === "ArrowUp") return componentProxy.onKeyUp_Up();
       if (s.key === "ArrowDown") return componentProxy.onKeyUp_Down();
     });
+    createRequest();
   },
   setup() {
     let pointerPosition = ref(_Cells.path[0]);
