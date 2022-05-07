@@ -1,22 +1,34 @@
 <template>
   <div id="board-inner-wrapper">
-    <div
-      class="row"
-      v-for="(Row, rowIndex) in CellMatrix"
-      :key="rowIndex"
-      :value="Row.length"
-      ref="rows"
-    >
-      <div class="col" v-for="(Cell, colIndex) in Row" :key="colIndex">
-        <Cell
-          :Row="rowIndex"
-          :Column="colIndex"
-          :IsFirstRow="rowIndex == 0"
-          :IsLastRow="rowIndex == Rows - 1"
-          :IsFirstColumn="colIndex == 0"
-          :IsLastColumn="colIndex == Columns - 1"
-          :Cell="Cell"
-        />
+    <div>
+      <label>Lectura en vivo: </label>
+      <input type="checkbox" id="activateRead" v-model="activateReading" />
+    </div>
+    <div class="content-row">
+      <div class="board">
+        <div
+          class="row"
+          v-for="(Row, rowIndex) in CellMatrix"
+          :key="rowIndex"
+          :value="Row.length"
+          ref="rows"
+        >
+          <div class="col" v-for="(Cell, colIndex) in Row" :key="colIndex">
+            <Cell
+              :Row="rowIndex"
+              :Column="colIndex"
+              :IsFirstRow="rowIndex == 0"
+              :IsLastRow="rowIndex == Rows - 1"
+              :IsFirstColumn="colIndex == 0"
+              :IsLastColumn="colIndex == Columns - 1"
+              :Cell="Cell"
+            />
+          </div>
+        </div>
+      </div>
+      <div class="content-column">
+        <input id="current-move" type="text" v-model="currentMove" />
+        <video id="video" height="320" autoplay />
       </div>
     </div>
   </div>
@@ -40,14 +52,26 @@ const Direction = {
   Right: 3,
 };
 
+const MOVE_TYPE = {
+  NONE: 0,
+  DOWN: 1,
+  UP: 2,
+  LEFT: 3,
+  RIGHT: 4,
+};
+
 const _Rows = 10;
 const _Columns = 10;
 
 let LIVE_VALUES = {
   DIRECTION_URL: CONSTANTS.DIRECTION_URL, //+ "?size=" + CONSTANTS.MAX_SAMPLE_COUNT,
+  ACTIVATE_READ: false,
+  CURRENT_MOVE: "None",
 };
 
 let dataUrl = ref(LIVE_VALUES.DIRECTION_URL);
+let activateReading = ref(LIVE_VALUES.ACTIVATE_READING);
+let currentMove = ref(LIVE_VALUES.CURRENT_MOVE);
 
 /* Contains the definition for special cells */
 const _Cells = {
@@ -118,19 +142,78 @@ const BoardCell = function (isPath, isEmpty, row, col, hasPointer) {
   };
 };
 
+function dispatchKeyEvent(key) {
+  let event = new KeyboardEvent("keyup", {
+    bubbles: true,
+    cancelable: true,
+    key: key,
+  });
+  window.dispatchEvent(event);
+}
+
 function processChartRequest(response) {
-  const data = response.data;
+  const data = parseInt(response.data);
   if (typeof data != "undefined" && data != null) {
-    console.log(data);
+    switch (data) {
+      case MOVE_TYPE.DOWN: {
+        dispatchKeyEvent("ArrowDown");
+        currentMove.value = "Abajo";
+        break;
+      }
+      case MOVE_TYPE.UP: {
+        dispatchKeyEvent("ArrowUp");
+        currentMove.value = "Arriba";
+        break;
+      }
+      case MOVE_TYPE.LEFT: {
+        dispatchKeyEvent("ArrowLeft");
+        currentMove.value = "Izquierda";
+        break;
+      }
+      case MOVE_TYPE.RIGHT: {
+        dispatchKeyEvent("ArrowRight");
+        currentMove.value = "Derecha";
+        break;
+      }
+      default: {
+        /* No hacer nada */
+        currentMove.value = "Sin movimiento";
+        break;
+      }
+    }
   }
 }
 
+// Start Cam function
+const startCam = () => {
+  //Initialize video
+  const video = document.getElementById("video");
+  console.log("video", video);
+
+  // validate video element
+  if (navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
+        video.srcObject = stream;
+      })
+      .catch(function (error) {
+        console.log("Something went wrong!");
+        console.log(error);
+      });
+  }
+};
+
 let createRequest;
 createRequest = function () {
-  axios.get(dataUrl.value).then((response) => {
-    processChartRequest(response);
+  if (activateReading.value) {
+    axios.get(dataUrl.value).then((response) => {
+      processChartRequest(response);
+      setTimeout(createRequest, CONSTANTS.UPDATE_INTERVAL);
+    });
+  } else {
     setTimeout(createRequest, CONSTANTS.UPDATE_INTERVAL);
-  });
+  }
 };
 
 export default {
@@ -146,6 +229,8 @@ export default {
       if (s.key === "ArrowDown") return componentProxy.onKeyUp_Down();
     });
     createRequest();
+
+    startCam();
   },
   setup() {
     let pointerPosition = ref(_Cells.path[0]);
@@ -254,6 +339,8 @@ export default {
       Rows: _Rows,
       Columns: _Columns,
       CellCount: _Rows * _Columns,
+      activateReading,
+      currentMove,
       onKeyUp_Up: () => move(Direction.Up),
       onKeyUp_Down: () => move(Direction.Down),
       onKeyUp_Left: () => move(Direction.Left),
@@ -294,6 +381,37 @@ export default {
 </script>
 
 <style>
+#video {
+  margin-left: 10px;
+  border: 2px solid black;
+  -webkit-transform: scaleX(-1);
+  transform: scaleX(-1);
+}
+
+#current-move {
+  margin-bottom: 10px;
+}
+
+.content-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  vertical-align: top;
+}
+
+.content-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  vertical-align: top;
+}
+
+.board {
+  display: block;
+}
+
 #board-inner-wrapper {
   display: flex;
   flex-direction: column;
