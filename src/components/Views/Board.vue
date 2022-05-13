@@ -151,28 +151,32 @@ function dispatchKeyEvent(key) {
   window.dispatchEvent(event);
 }
 
-function processChartRequest(response) {
+function processDirectionRequest(response) {
   const data = parseInt(response.data);
   if (typeof data != "undefined" && data != null) {
     switch (data) {
       case MOVE_TYPE.DOWN: {
         dispatchKeyEvent("ArrowDown");
         currentMove.value = "Abajo";
+        console.log(`Abajo (${data})`);
         break;
       }
       case MOVE_TYPE.UP: {
         dispatchKeyEvent("ArrowUp");
         currentMove.value = "Arriba";
+        console.log(`Arriba (${data})`);
         break;
       }
       case MOVE_TYPE.LEFT: {
         dispatchKeyEvent("ArrowLeft");
         currentMove.value = "Izquierda";
+        console.log(`Izquierda (${data})`);
         break;
       }
       case MOVE_TYPE.RIGHT: {
         dispatchKeyEvent("ArrowRight");
         currentMove.value = "Derecha";
+        console.log(`Derecha (${data})`);
         break;
       }
       default: {
@@ -207,10 +211,15 @@ const startCam = () => {
 let createRequest;
 createRequest = function () {
   if (activateReading.value) {
-    axios.get(dataUrl.value).then((response) => {
-      processChartRequest(response);
-      setTimeout(createRequest, CONSTANTS.UPDATE_INTERVAL);
-    });
+    try {
+      axios.get(dataUrl.value).then((response) => {
+        processDirectionRequest(response);
+      });
+    } catch (error) {
+      console.error("Communication error: " + error);
+    }
+
+    setTimeout(createRequest, CONSTANTS.UPDATE_INTERVAL);
   } else {
     setTimeout(createRequest, CONSTANTS.UPDATE_INTERVAL);
   }
@@ -319,17 +328,19 @@ export default {
         /* Game is finished, set the flag and wait for the pointer reboot */
         isFinished.value = true;
 
-        /* Set timeout for a message display and a pointer reboot */
-        alert("Llegaste a la meta!! Felicidades!!");
+        setTimeout(() => {
+          /* Set timeout for a message display and a pointer reboot */
+          alert("Llegaste a la meta!! Felicidades!!");
 
-        /* Game finished, move to the first cell */
-        let firstCell = getCell(_Cells.path[0]);
+          /* Game finished, move to the first cell */
+          let firstCell = getCell(_Cells.path[0]);
 
-        clearPointer();
-        pointerPosition.value = firstCell.value.getCoordinates();
-        firstCell.value.HasPointer = true;
+          clearPointer();
+          pointerPosition.value = firstCell.value.getCoordinates();
+          firstCell.value.HasPointer = true;
 
-        isFinished.value = false;
+          isFinished.value = false;
+        }, 250);
       }
 
       return true;
