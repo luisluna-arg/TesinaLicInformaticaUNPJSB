@@ -1,7 +1,6 @@
-    import * as net from "net";
-    import * as events from "events";
-    import * as util from "util";
-
+const net = require("net"),
+    events = require("events"),
+    util = require("util");
 
 let headsetClient = function(opts) {
     opts || (opts = {});
@@ -39,7 +38,9 @@ headsetClient.prototype.connect = function() {
         }
     });
 };
+
 const createClient = function (opts) {
     return new headsetClient(opts || {});
 }
-export{ headsetClient,createClient};
+
+module.exports = { headsetClient: headsetClient,createClient};

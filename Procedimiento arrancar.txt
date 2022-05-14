@@ -1,0 +1,4 @@
+Arrancar ThinkGearConnector
+Arrancar App
+Conectar Adaptador
+Prender dispositivo

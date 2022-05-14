@@ -1,31 +1,21 @@
 const MiscUtils = require('./misc-utils');
 const { MOVE_TYPE, loadJSON, splitData, dataPreProcessing } = require('./load-training-json');
+const { refactorSample, confusionMatrix } = require('./data-preprocessing');
 const DecisionTree = require('decision-tree');
 
 const CLASS_NAME = "moveType";
 
-const MoveTypeEnum = {
-    NONE: 0,
-    DOWN: 1,
-    UP: 2,
-    LEFT: 3,
-    RIGHT: 4
-}
-
-const MoveTypeTokens = [
-    'NONE',
-    'DOWN',
-    'UP',
-    'LEFT',
-    'RIGHT'
-];
-
 /* SETTINGS */
 /* //////// */
 
+const ExportBasePath = './src/decisionTree/data/';
+const DataSetExportPath = ExportBasePath + 'decisiontree-data.csv';
+const PreProcessedDataSetExportPath = ExportBasePath + 'decisiontree-preprocessed-data.csv';
+const SettingsExportPath = ExportBasePath + 'decisiontree-settings.json';
+
 const DataLoadingSettings = {
     preProcess: false,
-    filter: false,
+    classRemap: true, /* Determina si se remapea una clase segun un criterio de limpieza de ruido */
     shuffle: true,
     split: false,
     truncate: true,
@@ -33,10 +23,12 @@ const DataLoadingSettings = {
     normalization: true,
     fourier: true,
     deviationMatrix: true,
-    dataAugmentation: false,
-    selectFeatures: false,
-    dataAugmentationTotal: 1200, /* Muestras totales cada vez que un un archivo o lista de archivos es aumentado */
-    minTolerance: 0.0 /* entre 0 y 1, 0 para que traiga todo */
+    dataSetExportPath: DataSetExportPath,
+    preProcessedDataSetExportPath: PreProcessedDataSetExportPath,
+    settingsExportPath: SettingsExportPath,
+    minTolerance: 0.0, /* entre 0 y 1, 0 para que traiga todo */
+    dataAugmentationTotal: 175000, /* Muestras totales cada vez que un un archivo o lista de archivos es aumentado */
+    dataAugmentation: true
 };
 
 const ModelTrainingSettings = {
@@ -52,7 +44,7 @@ function loadData(fileBasePath) {
     /* ///////////////// */
 
     /* Carga de datos sin ningun tipo de procesamiento */
-    function loadData(moveType) {
+    function loadFiles(moveType) {
         let fileNames = {};
         fileNames[MOVE_TYPE.DOWN] = '/ABAJO.json';
         fileNames[MOVE_TYPE.UP] = '/ARRIBA.json';
@@ -64,10 +56,12 @@ function loadData(fileBasePath) {
         return loadJSON([{ file: filePath, moveType }], DataLoadingSettings);
     }
 
-    loadedData = loadData(MOVE_TYPE.DOWN);
-    loadedData.concat(loadData(MOVE_TYPE.UP));
-    loadedData.concat(loadData(MOVE_TYPE.LEFT));
-    loadedData.concat(loadData(MOVE_TYPE.RIGHT));
+    loadedData = loadFiles(MOVE_TYPE.DOWN);
+    loadedData.concat(loadFiles(MOVE_TYPE.UP));
+    loadedData.concat(loadFiles(MOVE_TYPE.LEFT));
+    loadedData.concat(loadFiles(MOVE_TYPE.RIGHT));
+
+    const dataSet = loadedData.getSamples();
 
     /* PREPROCESADO DE DATOS */
     /* ///////////////////// */
@@ -75,7 +69,9 @@ function loadData(fileBasePath) {
     /* Una vez cargados, aplicar preprocesamientos, excepto data augmentation */
     MiscUtils.printHeader("Preprocesamiento de datos");
     DataLoadingSettings.preProcess = true;
-    loadedData = dataPreProcessing(loadedData, DataLoadingSettings);
+    const preProcessResult = dataPreProcessing(loadedData, DataLoadingSettings);
+    loadedData = preProcessResult.data;
+    preProcessedDataSet = loadedData.getSamples();
 
     /* ENTRENAMIENTO */
     /* ///////////// */
@@ -83,11 +79,6 @@ function loadData(fileBasePath) {
 
     const samples = loadedData.getSamples();
     const labels = loadedData.getLabels();
-
-    // decisionTree: {
-    //     MoveTypeEnum: MOVE_TYPE,
-    //     verbose: false
-    // },
 
     /* Data de entrenamiento */
     const trainingLength = Math.floor(samples.length * 0.7);
@@ -102,6 +93,8 @@ function loadData(fileBasePath) {
 
     return {
         featureNames: loadedData.getFeatureNames(),
+        dataSet: dataSet,
+        preProcessedDataSet: preProcessedDataSet,
         training: {
             samples: trainingData,
             labels: trainingLabels
@@ -109,6 +102,10 @@ function loadData(fileBasePath) {
         test: {
             samples: testData,
             labels: testLabels
+        },
+        preProcess: {
+            stats: preProcessResult.stats,
+            trainingSettings: preProcessResult.trainingSettings
         }
     };
 }
@@ -132,15 +129,22 @@ class DecisionTreeModel {
     #testAccuracy = 0;
     #decisionTree = null;
     #featureNames = null;
+    #preProcess = null;
     #testData = {};
+    #dataSet = {};
+    #preProcessedDataSet = {};
     #trainingData = {};
-    #options = null;
+    #options = {};
 
     constructor(arg) {
         if (typeof arg == 'string') {
-            /* Recibe el path de archivos de entrenamiento de entrenamiento */
-            let { training, test, featureNames } = loadData(arg);
+            /* Recibe el path de archivos de entrenamiento */
+            let { training, test, featureNames, preProcess, dataSet, preProcessedDataSet } = loadData(arg);
+
             this.#testData = test;
+            this.#preProcess = preProcess;
+            this.#dataSet = dataSet;
+            this.#preProcessedDataSet = preProcessedDataSet;
             this.#createModel(training.samples, training.labels, featureNames, ModelTrainingSettings);
         }
         else {
@@ -149,35 +153,42 @@ class DecisionTreeModel {
         }
     }
 
-    constructorOG(...args) {
-        let argIndex = 0;
-        if (args.length == 2) {
-            json = args[argIndex++];
-            this.#featureNames = args[argIndex++];
-
-            this.#decisionTree = new DecisionTree(CLASS_NAME, this.#featureNames);
-            this.#decisionTree.import(json);
-            this.#JSONTrained = true;
-        }
-        else if (args.length == 4) {
-
-        }
-
-    }
-
     /* Metodos publicos */
     /* **************** */
 
+    predictPreProcessed(predictionSample) {
+        let localSample = predictionSample;
+        let predicted = this.#decisionTree.predict(new Sample(localSample, this.#featureNames));
+        return typeof predicted == 'string' ? parseInt(predicted) : predicted;
+    }
+
     predict(predictionSample) {
-        if (this.#JSONTrained) {
-        }
-        else {
-            return this.#decisionTree.predict(new Sample(predictionSample, this.#featureNames));
-        }
+        let resampled = predictionSample;
+
+        let refactorSettings = Object.assign({}, this.#preProcess);
+        refactorSettings.trainingSettings = Object.assign(
+            {}, refactorSettings.trainingSettings
+            , {
+                normalization: true,
+                fourier: true,
+                dataAugmentation: false,
+                shuffle: false
+            }
+        );
+
+        /* Toda muestra ajena al dataset original debe replantearse */
+        resampled = refactorSample(resampled, refactorSettings);
+
+        let predicted = this.#decisionTree.predict(new Sample(resampled, this.#featureNames));
+        return typeof predicted == 'string' ? parseInt(predicted) : predicted;
     }
 
     getFeatureNames() {
         return this.#featureNames;
+    }
+
+    getDataSet() {
+        return this.#dataSet;
     }
 
     getTrainingData() {
@@ -191,7 +202,11 @@ class DecisionTreeModel {
     toJSON() {
         return {
             modelRebuildSettings: this.#decisionTree.toJSON(),
-            trainAccuracy: this.#trainAccuracy
+            trainAccuracy: this.#trainAccuracy,
+            testAccuracy: this.#testAccuracy,
+            preProcess: this.#preProcess,
+            featureNames: this.#featureNames,
+            options: this.#options
         };
     }
 
@@ -203,14 +218,49 @@ class DecisionTreeModel {
         console.log(`Precision de test: ${MiscUtils.trunc(this.#testAccuracy * 100, 2)} % de acierto`);
     }
 
+    /**
+     * Exporta el dataset del modelo a un CSV.
+     */
+    exportDataSet() {
+        let localSettings = Object.assign({}, DataLoadingSettings, {
+            dataAugmentation: false,
+        });
+
+        const path = !MiscUtils.isNullOrUndef(localSettings.dataSetExportPath) ?
+            localSettings.dataSetExportPath : DataSetExportPath;
+
+        MiscUtils.writeDataSetCSV(path, this.#dataSet);
+    }
+
+    exportPreProcessDataSet() {
+        let localSettings = Object.assign({}, DataLoadingSettings, {
+            dataAugmentation: false,
+        });
+
+        const path = !MiscUtils.isNullOrUndef(localSettings.preProcessedDataSetExportPath) ?
+            localSettings.preProcessedDataSetExportPath : PreProcessedDataSetExportPath;
+
+        MiscUtils.writeDataSetCSV(path, this.#preProcessedDataSet);
+    }
+
+    exportSettings() {
+        let localSettings = Object.assign({}, DataLoadingSettings, {
+        });
+        const path = !MiscUtils.isNullOrUndef(localSettings.dataSetExportPath) ?
+            localSettings.settingsExportPath : SettingsExportPath;
+        MiscUtils.writeJSON(path, this.toJSON());
+    }
+
+    /* **************************************************************************** */
+
     /* Metodos privados */
     /* **************** */
+
     #createModel(...args) {
         let argIndex = 0;
         this.#trainingData.samples = args[argIndex++];
         this.#trainingData.labels = args[argIndex++];
         this.#featureNames = args[argIndex++];
-        this.#options = args[argIndex++];
 
         if (typeof this.#trainingData.samples == 'undefined' || this.#trainingData.samples == null || this.#trainingData.samples.length == 0) {
             throw 'Coleccion features no valida';
@@ -232,21 +282,24 @@ class DecisionTreeModel {
         }
 
         this.#decisionTree = new DecisionTree(CLASS_NAME, this.#featureNames);
-        // this.#trainingData.labels = this.#trainingData.labels.map(o => o.toString());
-        // this.#trainingData.samples = this.#formatSamples(this.#trainingData.samples, this.#trainingData.labels);
         this.#train();
     }
 
-    #rebuildModel(...args) {
-        let argIndex = 0;
-        const json = args[argIndex++];
-        
-        let modelRebuildJson = json.modelRebuildSettings;
-        this.#featureNames = json.featureNames;
+    #rebuildModel(jsonSettings) {
+        this.#JSONTrained = true;
+
+        let modelRebuildJson = jsonSettings.modelRebuildSettings;
+        this.#featureNames = jsonSettings.featureNames;
+        this.#trainAccuracy = jsonSettings.trainAccuracy;
+        this.#preProcess = jsonSettings.preProcess;
+        this.#options = jsonSettings.options;
+
+        if (!MiscUtils.isNullOrUndef(DataLoadingSettings.dataSetExportPath)) {
+            this.#dataSet = MiscUtils.readDataSetCSV(DataLoadingSettings.dataSetExportPath);
+        }
 
         this.#decisionTree = new DecisionTree(CLASS_NAME, this.#featureNames);
         this.#decisionTree.import(modelRebuildJson);
-        this.#JSONTrained = true;
     }
 
     #train() {
@@ -258,28 +311,10 @@ class DecisionTreeModel {
         const testLabelsForEval = this.#testData.labels.map(o => o.toString());
         const testSamplesForEval = this.#formatSamples(this.#testData.samples, testLabelsForEval);
         this.#testAccuracy = this.#decisionTree.evaluate(testSamplesForEval);
-
-        console.log("trainingSamples", trainingSamples[0])
-        console.log("testSamplesForEval", testSamplesForEval[0])
     }
 
     #formatSamples(samplesToFormat, sampleLabels) {
-        let localSamples = samplesToFormat;
-        if (this.#options.normalize) {
-            localSamples = this.#normalizeFeatures(localSamples);
-        }
-        return this.#createSamples(localSamples, sampleLabels);
-    }
-
-    #normalizeFeatures(data) {
-        let result;
-
-        tf.tidy(() => {
-            let is2dTensor = data.length > 1 && Array.isArray(data[0]);
-            result = (is2dTensor ? tf.tensor2d : tf.tensor)(data).transpose().log().transpose().arraySync();
-        });
-
-        return result;
+        return this.#createSamples(samplesToFormat, sampleLabels);
     }
 
     #createSamples(sampleValues, sampleLabels) {
@@ -296,5 +331,6 @@ class DecisionTreeModel {
 }
 
 module.exports = {
-    DecisionTreeModel
+    DecisionTreeModel,
+    confusionMatrix
 }

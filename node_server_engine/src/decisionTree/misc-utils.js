@@ -1,6 +1,5 @@
 /* HELPER FUNCTIONS */
 /* //////////////// */
-
 const printHeader = function (header) {
     console.log("");
     console.log(header);
@@ -32,11 +31,63 @@ function trunc(value, decimals) {
     return parseFloat(value.toFixed(decimals));
 }
 
+function readDataSetCSV(filePath) {
+    const fs = require('fs');
+    if (fs.existsSync(filePath)) {
+        let fileData = fs.readFileSync(filePath, { encoding: 'utf-8' });
+        let result = fileData.split(';').
+            map(l => l.split(',').
+            map(v => (v.indexOf('.') >= 0) ? parseFloat(v) : parseInt(v)));
+
+        
+        return result;
+    }
+    else {
+        throw 'Archivo no encontrado';
+    }
+}
+
+function writeDataSetCSV(filePath, dataCollection) {
+    const fs = require('fs');
+    if (fs.existsSync(filePath) && fs.accessSync(filePath)) {
+        fs.unlink(filePath);
+    }
+
+    fs.writeFileSync(filePath, dataCollection.map((c, i) => c.join(',')).join(';') + '\n', { encoding: 'utf-8' });
+}
+
+
+function readJSON(filePath) {
+    const fs = require('fs');
+    if (fs.existsSync(filePath)) {
+        let fileData = fs.readFileSync(filePath, { encoding: 'utf-8' });
+        let result = JSON.parse(fileData);
+        return result;
+    }
+    else {
+        throw 'Archivo no encontrado';
+    }
+}
+
+function writeJSON(filePath, jsonData) {
+    const fs = require('fs');
+    if (fs.existsSync(filePath) && fs.accessSync(filePath)) {
+        fs.unlink(filePath);
+    }
+
+    fs.writeFileSync(filePath, JSON.stringify(jsonData), { encoding: 'utf-8' });
+}
+
+/* /////////////////////////////////////////////////////////////////// */
 
 module.exports = {
     printHeader,
-    printHeader,
+    printSubHeader,
     getArrayShape,
     isNullOrUndef,
-    trunc
+    trunc,
+    readDataSetCSV,
+    writeDataSetCSV,
+    readJSON,
+    writeJSON
 }

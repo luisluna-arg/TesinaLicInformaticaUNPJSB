@@ -98,11 +98,11 @@ class ReadData {
     const sampleColCount = MiscUtils.getArrayShape(this.#samples)[1];
 
     if (MiscUtils.isNullOrUndef(labelColumnCount)) {
-      labelColumnCount = sampleColCount - this.#featureNames.length; 
+      labelColumnCount = sampleColCount - this.#featureNames.length;
     }
 
     const featureColCount = this.#featureNames.length;
-    
+
     let maxes = new Array(featureColCount).fill(0);
 
     for (let i = 0; i < this.#samples.length; i++) {
@@ -136,7 +136,7 @@ class ReadData {
       maxes[this.#featureNames[i]] = this.#dataMax[i];
     }
 
-    let labelCount = null;
+    let labelCount;
     if (this.labels != null && Array.isArray(this.#labels)) {
       const labelsShape = getArrayShape(this.#labels);
       labelCount = this.getLabelCount(this.#labels);
@@ -148,8 +148,8 @@ class ReadData {
     }
 
     // console.log("Label count:", labelCount);
-    console.log("Feature maxes:", maxes); 
-}
+    console.log("Feature maxes:", maxes);
+  }
 
 }
 
@@ -210,7 +210,8 @@ function loadJSON(fileData, settings) {
 
   let readData = new ReadData(samples);
   if (localSettings.preProcess) {
-    readData = dataPreProcessing(readData, localSettings);
+    let preProcessResult = dataPreProcessing(readData, localSettings);
+    readData = preProcessResult.data;
   }
 
   if (localSettings.split) {
@@ -221,47 +222,15 @@ function loadJSON(fileData, settings) {
 }
 
 function dataPreProcessing(readData, localSettings) {
-  let { result, featureNames } = preProcess(readData.getSamples(), readData.getFeatureNames(), localSettings);
+  let preProcessResult = preProcess(readData.getSamples(), readData.getFeatureNames(), localSettings);
+  readData.setSamples(preProcessResult.data, preProcessResult.featureNames);
 
-  readData.setSamples(result, featureNames);
-
-  return readData;
+  return {
+    data: readData,
+    stats: preProcessResult.stats,
+    trainingSettings: preProcessResult.trainingSettings
+  };
 }
-
-// function filterData(data, settings) {
-//   const localSettings = Object.assign({
-//     minTolerance: 0,
-//   }, settings);
-
-//   let finalSamples = []
-//   const columnCount = 1;
-
-//   /* Se normaliza cada variable de medicion en un rango de 0 a 1, 
-//     *  usando su porcentaje respecto del maximo valor observado en toda la muestra
-//     *  Si el valor observado supero el % de tolerancia, se lo considera valor aceptable y
-//     *  se usan sus labels.
-//     *  Si no se supera ese % de tolerancia minimo, se desactivan las labels (array de 0)
-//     *  para descartar la muestra
-//     */
-//   for (let i = 0; i < data.getSamples().length; i++) {
-//     const sample = data.getSamples()[i];
-//     const features = sample.slice(0, sample.length - columnCount); /* Sample array */
-
-//     for (let featureIndex = 0; featureIndex < features.length; featureIndex++) {
-//       let featureMax = data.#dataMax[featureIndex];
-//       let featureValue = features[featureIndex];
-//       if (featureMax > 0 && featureValue / featureMax > localSettings.minTolerance) {
-//         finalSamples.push(sample);
-//         break;
-//       }
-//     }
-//   }
-
-//   data.setSamples(finalSamples);
-
-//   return data;
-
-// }
 
 /**
  * Aleatoriza los datos y los separa en arreglos de muestras y etiquetas
