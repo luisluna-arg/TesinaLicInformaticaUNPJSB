@@ -1,1 +1,2 @@
 node_server_engine/node_modules
+node_server_engine/src/config/firebase.config.js
