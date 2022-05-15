@@ -3,6 +3,7 @@ const router = Router();
 const headsetClient = require("../lib");
 const { DecisionTreeModel } = require('../decisionTree/decision-tree-model');
 const MiscUtils = require('../decisionTree/misc-utils');
+const validations = require("../misc");
 const path = require("path");
 
 // Include file system to write json data
@@ -37,7 +38,7 @@ client.on("data", (sensedData) => {
     let sample = {
         ts: (new Date).toISOString()
     };
-    let record = { ...sample, ...sensedData };
+    let record = {...sample, ...sensedData };
     responseSamples.push(record);
 
     if (typeof record.poorSignalLevel != 'undefined' && record.poorSignalLevel == 0) {
@@ -56,16 +57,12 @@ router.get("/single", (req, res) => {
     res.json(responseSamples[responseSamples.length - 1]);
 });
 
-function isNullOrUndef(value) {
-    return typeof value == 'undefined' || value == null;
-}
-
 router.get("/getDirection", (req, res) => {
     let result = 0;
-    if (!isNullOrUndef(responseSamples) &&
+    if (!validations.isNullOrUndef(responseSamples) &&
         responseSamples.length > 0) {
         let sample = responseSamples[responseSamples.length - 1];
-        if (!isNullOrUndef(sample) && !isNullOrUndef(sample.eegPower)) {
+        if (!validations.isNullOrUndef(sample) && !validations.isNullOrUndef(sample.eegPower)) {
             let eeg = sample.eegPower;
             let signals = [
                 eeg.delta,
