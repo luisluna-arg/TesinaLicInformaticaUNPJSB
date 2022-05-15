@@ -163,7 +163,7 @@ class DecisionTreeModel {
     }
 
     predict(predictionSample) {
-        let resampled = predictionSample;
+        let resample = predictionSample;
 
         let refactorSettings = Object.assign({}, this.#preProcess);
         refactorSettings.trainingSettings = Object.assign(
@@ -177,10 +177,11 @@ class DecisionTreeModel {
         );
 
         /* Toda muestra ajena al dataset original debe replantearse */
-        resampled = refactorSample(resampled, refactorSettings);
+        resample = refactorSample(resample, refactorSettings);
 
-        let predicted = this.#decisionTree.predict(new Sample(resampled, this.#featureNames));
-        return typeof predicted == 'string' ? parseInt(predicted) : predicted;
+        let predicted = this.#decisionTree.predict(new Sample(resample, this.#featureNames));
+        let result = typeof predicted == 'string' ? parseInt(predicted) : predicted;
+        return { resample, result };
     }
 
     getFeatureNames() {

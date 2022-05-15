@@ -124,7 +124,8 @@ for (let i = 0; i < testDataCount; i++) {
     sampleStartTime = new Date().getTime()
     const originalSample = testDataSet[i];
     const sample = originalSample.slice(0, originalSample.length - 1);
-    const prediction = decisionTreeJSON.predict(sample);
+    const { resample, result } = decisionTreeJSON.predict(sample);
+    const prediction = result;
     const realLabel = originalSample[originalSample.length - 1];
 
     pedictionLabelsJSON.push(parseInt(prediction));
