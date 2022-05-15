@@ -3,7 +3,9 @@ const router = Router();
 const headsetClient = require("../lib");
 const { DecisionTreeModel } = require('../decisionTree/decision-tree-model');
 const MiscUtils = require('../decisionTree/misc-utils');
-const validations = require("../misc");
+const validations = require("../misc/validations-utils");
+const firestore = require("../firestore/firestore");
+
 const path = require("path");
 
 // Include file system to write json data
@@ -58,10 +60,11 @@ router.get("/single", (req, res) => {
 });
 
 router.get("/getDirection", (req, res) => {
-    let result = 0;
+    let ts = (new Date).toISOString();
     if (!validations.isNullOrUndef(responseSamples) &&
         responseSamples.length > 0) {
         let sample = responseSamples[responseSamples.length - 1];
+        firestore.save(sample, "test", ts);
         if (!validations.isNullOrUndef(sample) && !validations.isNullOrUndef(sample.eegPower)) {
             let eeg = sample.eegPower;
             let signals = [
@@ -74,11 +77,12 @@ router.get("/getDirection", (req, res) => {
                 eeg.lowGamma,
                 eeg.highGamma
             ];
-            result = decisionTreeJSON.predict(signals);
+            let { resample, result } = decisionTreeJSON.predict(signals);
             console.log("result", result);
+            firestore.save(resample, "test-resample", ts);
+            firestore.save(result, "test-result", ts);
         }
     }
-
     res.json(result);
 });
 
