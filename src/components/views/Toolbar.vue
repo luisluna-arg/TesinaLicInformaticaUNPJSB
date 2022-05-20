@@ -1,7 +1,7 @@
 <template>
   <div class="toolbar" role="banner">
     <img width="40" alt="Laberinto" src="./../../assets/logo.png" />
-    <span>Live chart</span>
+    <span>Gráfico en vivo</span>
     <div class="spacer"></div>
   </div>
 </template>

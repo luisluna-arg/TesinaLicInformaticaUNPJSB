@@ -7,20 +7,20 @@
       <input v-model.number="updateInterval" readonly type="number" />
       <label>Muestras: </label>
       <input v-model.number="sampleCount" @change="onChange_SampleCout" type="number" />
+      <label for="jsonFile">JSON: </label>
+      <input type="file" id="jsonFile" name="jsonFile" accept=".json" @change="onChange_JsonFile">
+    </div>
+    <div id="stats-bar">
       <label>Atención: </label>
       <input v-model.number="attention" type="number" />
       <label>Meditación: </label>
       <input v-model.number="meditation" type="number" />
-    </div>
-    <div class="input-bar">
       <label>Media: </label>
-      <input v-model.number="meanVal" type="number" />
+      <input v-model.number="meanVal" readonly type="number" />
       <label>Varianza: </label>
-      <input v-model.number="varianceVal" type="number" />
+      <input v-model.number="varianceVal" readonly type="number" />
       <label>Dev. Std.: </label>
-      <input v-model.number="devStdVal" type="number" />
-      <label for="jsonFile">JSON: </label>
-      <input type="file" id="jsonFile" name="jsonFile" accept=".json" @change="onChange_JsonFile">
+      <input v-model.number="devStdVal" readonly type="number" />
     </div>
     <div class="chart-wrapper">
       <canvas :id="CHART_DOM_ID"></canvas>
@@ -357,16 +357,32 @@ label {
   font-weight: bold;
 }
 .chart-wrapper {
-  height: calc(100vh - 90px);
+  height: calc(100vh - 130px);
   position: relative;
   overflow: hidden;
 }
-#input-bar {
-  padding-top: 5px;
+#input-bar, #stats-bar {
+  padding-top: 10px;
 }
 
 #input-bar > * {
   margin-right: 1vw;
-  width: 8vw;
+  width: 6vw;
 }
+
+#input-bar > #liveChart {
+  margin-right: 1vw;
+  width: 30px;
+}
+
+#input-bar > #jsonFile {
+  margin-right: 1vw;
+  width: 300px;
+}
+
+#stats-bar > input {
+  margin-right: 1vw;
+  width: 100px;
+}
+
 </style>
