@@ -3,6 +3,8 @@
     <div>
       <label>Lectura en vivo: </label>
       <input type="checkbox" id="activateRead" v-model="activateReading" />
+      <label style="margin-left:10px">URL Servidor: </label>
+      <input type="text" id="serverURL" v-model="serverURL" />
     </div>
     <div class="content-row">
       <div class="board">
@@ -40,8 +42,9 @@ import Cell from "./Cell.vue";
 import axios from "axios";
 
 const CONSTANTS = {
-  DATA_URL: "http://localhost:13854/all",
-  DIRECTION_URL: "http://localhost:13854/getDirection",
+  SERVER_URL: "http://localhost:13854/",
+  DATA_METHOD: "all",
+  DIRECTION_METHOD: "getDirection",
   UPDATE_INTERVAL: 1000,
 };
 
@@ -64,12 +67,12 @@ const _Rows = 10;
 const _Columns = 10;
 
 let LIVE_VALUES = {
-  DIRECTION_URL: CONSTANTS.DIRECTION_URL, //+ "?size=" + CONSTANTS.MAX_SAMPLE_COUNT,
+  SERVER_URL: CONSTANTS.SERVER_URL, //+ "?size=" + CONSTANTS.MAX_SAMPLE_COUNT,
   ACTIVATE_READ: false,
-  CURRENT_MOVE: "None",
+  CURRENT_MOVE: "Sin movimiento",
 };
 
-let dataUrl = ref(LIVE_VALUES.DIRECTION_URL);
+let serverURL = ref(LIVE_VALUES.SERVER_URL);
 let activateReading = ref(LIVE_VALUES.ACTIVATE_READING);
 let currentMove = ref(LIVE_VALUES.CURRENT_MOVE);
 
@@ -212,7 +215,8 @@ let createRequest;
 createRequest = function () {
   if (activateReading.value) {
     try {
-      axios.get(dataUrl.value).then((response) => {
+      let url = serverURL.value + CONSTANTS.DATA_METHOD;
+      axios.get(url).then((response) => {
         processDirectionRequest(response);
       });
     } catch (error) {
@@ -230,13 +234,13 @@ export default {
     Cell,
   },
   mounted() {
-    let componentProxy = this;
-    window.addEventListener("keyup", function (s) {
-      if (s.key === "ArrowRight") return componentProxy.onKeyUp_Right();
-      if (s.key === "ArrowLeft") return componentProxy.onKeyUp_Left();
-      if (s.key === "ArrowUp") return componentProxy.onKeyUp_Up();
-      if (s.key === "ArrowDown") return componentProxy.onKeyUp_Down();
-    });
+    // let componentProxy = this;
+    // window.addEventListener("keyup", function (s) {
+    //   if (s.key === "ArrowRight") return componentProxy.onKeyUp_Right();
+    //   if (s.key === "ArrowLeft") return componentProxy.onKeyUp_Left();
+    //   if (s.key === "ArrowUp") return componentProxy.onKeyUp_Up();
+    //   if (s.key === "ArrowDown") return componentProxy.onKeyUp_Down();
+    // });
     createRequest();
 
     startCam();
@@ -352,6 +356,7 @@ export default {
       CellCount: _Rows * _Columns,
       activateReading,
       currentMove,
+      serverURL,
       onKeyUp_Up: () => move(Direction.Up),
       onKeyUp_Down: () => move(Direction.Down),
       onKeyUp_Left: () => move(Direction.Left),
