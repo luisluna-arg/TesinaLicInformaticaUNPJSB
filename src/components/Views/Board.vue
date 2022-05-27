@@ -156,6 +156,7 @@ function dispatchKeyEvent(key) {
 
 function processDirectionRequest(response) {
   const data = parseInt(response.data);
+  
   if (typeof data != "undefined" && data != null) {
     switch (data) {
       case MOVE_TYPE.DOWN: {
@@ -215,7 +216,7 @@ let createRequest;
 createRequest = function () {
   if (activateReading.value) {
     try {
-      let url = serverURL.value + CONSTANTS.DATA_METHOD;
+      let url = serverURL.value + CONSTANTS.DIRECTION_METHOD;
       axios.get(url).then((response) => {
         processDirectionRequest(response);
       });
