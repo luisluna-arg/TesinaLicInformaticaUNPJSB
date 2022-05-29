@@ -1,44 +1,5 @@
 # Tesis
 
-# English
-
-## Neurosky TGSP communication protocol
-The ThinkGear Socket Protocol (TGSP) is a JSON-based protocol for the transmission and receipt of ThinkGear brainwave data between a client and a server. TGSP was designed to allow languages and/or frameworks without a standard serial port API to easy integrate breanwave sensing functionality thrugh socket APIs.
-
-This specific software was adapted for node.js by De Jesus Guillermo and Luis Luna owners of this proyect.
-
-For More detail visit: 
-http://developer.neurosky.com/docs/doku.php?id=thinkgear_socket_protocol
-
-
-## Neurosky communication REST API
-Little API with node + express + morgan to get headset data in real time
-
-##Requirements
-- ThinkGearConnector. Download from http://developer.neurosky.com/docs/doku.php?id=thinkgear_connector_tgc
-- Node.js. Download from https://nodejs.org/en/
-
-## API Usage
-1. Run ThinkGearConnector application
-2. Run server via: 
-	- Open a terminal or windows command line/powershell and move to the application directory
-	- Use the command: npm run dev
-3. Plug in the EEG Device USB dongle to the computer
-4. Put on the EEG Device and turn it on. Wait until both the USB dongle and the EEG Device light indicators turn from red to blue, this should indicate that the EEG device is connected.
-5. Wait a moment and EEG Server should be reading brainwaves.
-
-## API Methods
-
-- /all: Returns all the samples red during the current session or an especific sample count via the size parameter. E. g.: localhost:xxxx/all?size=5
-- /single: Returns the latest read sample from EEG Device. E. g.: localhost:xxxx/single
-- /getDirection: Returns a direction prediction based on the latest EEG reading. E. g.: localhost:xxxx/getDirection
-	- Directions are an integer numbers from 0 to 4 and represent one of the following:
-		- 0: No direction
-		- 1: Down
-		- 2: Up
-		- 3: Left
-		- 4: Right
-
 # Español
 
 ## Protocolo de comunicaciones Neurosky TGSP communication protocol
@@ -81,3 +42,43 @@ Little API compuesta de node, express y morgan, para lectura de datos de casco E
 		2. Arriba
 		3. Izquierda
 		4. Derecha
+
+# English
+
+## Neurosky TGSP communication protocol
+The ThinkGear Socket Protocol (TGSP) is a JSON-based protocol for the transmission and receipt of ThinkGear brainwave data between a client and a server. TGSP was designed to allow languages and/or frameworks without a standard serial port API to easy integrate breanwave sensing functionality thrugh socket APIs.
+
+This specific software was adapted for node.js by De Jesus Guillermo and Luis Luna owners of this proyect.
+
+For More detail visit: 
+http://developer.neurosky.com/docs/doku.php?id=thinkgear_socket_protocol
+
+
+## Neurosky communication REST API
+Little API with node + express + morgan to get headset data in real time
+
+##Requirements
+- ThinkGearConnector. Download from http://developer.neurosky.com/docs/doku.php?id=thinkgear_connector_tgc
+- Node.js. Download from https://nodejs.org/en/
+
+## API Usage
+1. Run ThinkGearConnector application
+2. Run server via: 
+	- Open a terminal or windows command line/powershell and move to the application directory
+	- Use the command: npm run dev
+3. Plug in the EEG Device USB dongle to the computer
+4. Put on the EEG Device and turn it on. Wait until both the USB dongle and the EEG Device light indicators turn from red to blue, this should indicate that the EEG device is connected.
+5. Wait a moment and EEG Server should be reading brainwaves.
+
+## API Methods
+
+- /all: Returns all the samples red during the current session or an especific sample count via the size parameter. E. g.: localhost:xxxx/all?size=5
+- /single: Returns the latest read sample from EEG Device. E. g.: localhost:xxxx/single
+- /getDirection: Returns a direction prediction based on the latest EEG reading. E. g.: localhost:xxxx/getDirection
+	- Directions are an integer numbers from 0 to 4 and represent one of the following:
+		- 0: No direction
+		- 1: Down
+		- 2: Up
+		- 3: Left
+		- 4: Right
+
