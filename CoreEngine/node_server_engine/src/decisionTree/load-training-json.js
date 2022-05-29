@@ -245,7 +245,7 @@ function splitData(data) {
   let finalLabels = [];
   const labelColumnCount = 1;
 
-  _.each(data.getSamples(), (dataArray) => {
+  _.each(data.getSamples(), (dataArray, i) => {
     const featureCount = dataArray.length - labelColumnCount;
     let features = dataArray.slice(0, featureCount);
     finalSamples.push(features);

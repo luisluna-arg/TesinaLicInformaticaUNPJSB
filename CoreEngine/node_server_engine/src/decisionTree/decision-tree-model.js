@@ -7,13 +7,15 @@ const CLASS_NAME = "moveType";
 
 /* SETTINGS */
 /* //////// */
+let paths = {};
 
-const ExportBasePath = './src/decisionTree/data/';
-const DataSetExportPath = ExportBasePath + 'decisiontree-data.csv';
-const PreProcessedDataSetExportPath = ExportBasePath + 'decisiontree-preprocessed-data.csv';
-const SettingsExportPath = ExportBasePath + 'decisiontree-settings.json';
+ paths.decisionTreeData = './src/decisionTree/data/'
+ paths.exportBase = paths.decisionTreeData + 'trained-model/';
+ paths.dataSetExportPath = paths.exportBase + 'decisiontree-data.csv';
+ paths.preProcessedDataSetExport = paths.exportBase + 'decisiontree-preprocessed-data.csv';
+ paths.settingsExport = paths.exportBase + 'decisiontree-settings.json';
 
-const DataLoadingSettings = {
+let DataLoadingSettings = {
     preProcess: false,
     classRemap: true, /* Determina si se remapea una clase segun un criterio de limpieza de ruido */
     shuffle: true,
@@ -23,11 +25,11 @@ const DataLoadingSettings = {
     normalization: true,
     fourier: true,
     deviationMatrix: true,
-    dataSetExportPath: DataSetExportPath,
-    preProcessedDataSetExportPath: PreProcessedDataSetExportPath,
-    settingsExportPath: SettingsExportPath,
+    dataSetExportPath: paths.dataSetExportPath,
+    preProcessedDataSetExportPath: paths.preProcessedDataSetExport,
+    settingsExportPath: paths.settingsExport,
     minTolerance: 0.0, /* entre 0 y 1, 0 para que traiga todo */
-    dataAugmentationTotal: 175000, /* Muestras totales cada vez que un un archivo o lista de archivos es aumentado */
+    dataAugmentationTotal: 150000, /* Muestras totales cada vez que un un archivo o lista de archivos es aumentado */
     dataAugmentation: true
 };
 
@@ -36,8 +38,12 @@ const ModelTrainingSettings = {
     verbose: false
 };
 
-function loadData(fileBasePath) {
-    fileBasePath = !MiscUtils.isNullOrUndef(fileBasePath) ? fileBasePath : './data';
+function loadData(fileBasePath, loadingSettings) {
+    if (loadingSettings != null) {
+        DataLoadingSettings = Object.assign({}, DataLoadingSettings, loadingSettings);
+    }
+
+    fileBasePath = !MiscUtils.isNullOrUndef(fileBasePath) ? fileBasePath : decisionTreeDataPath;
     let loadedData = null;
 
     /* CARGA DE ARCHIVOS */
@@ -67,7 +73,7 @@ function loadData(fileBasePath) {
     /* ///////////////////// */
 
     /* Una vez cargados, aplicar preprocesamientos, excepto data augmentation */
-    MiscUtils.printHeader("Preprocesamiento de datos");
+    MiscUtils.printSubHeader("Preprocesamiento de datos", true);
     DataLoadingSettings.preProcess = true;
     const preProcessResult = dataPreProcessing(loadedData, DataLoadingSettings);
     loadedData = preProcessResult.data;
@@ -75,6 +81,8 @@ function loadData(fileBasePath) {
 
     /* ENTRENAMIENTO */
     /* ///////////// */
+    MiscUtils.printSubHeader("Entrenamiento de modelo", true);
+
     splitData(loadedData);
 
     const samples = loadedData.getSamples();
@@ -136,10 +144,13 @@ class DecisionTreeModel {
     #trainingData = {};
     #options = {};
 
-    constructor(arg) {
-        if (typeof arg == 'string') {
+    constructor(...args) {
+        if (args.length > 1 && typeof args[0] == 'string') {
             /* Recibe el path de archivos de entrenamiento */
-            let { training, test, featureNames, preProcess, dataSet, preProcessedDataSet } = loadData(arg);
+            let filePath = args[0];
+            let loadingSettings = args.length == 2 ? args[1] : null;
+
+            let { training, test, featureNames, preProcess, dataSet, preProcessedDataSet } = loadData(filePath, loadingSettings);
 
             this.#testData = test;
             this.#preProcess = preProcess;
@@ -147,9 +158,12 @@ class DecisionTreeModel {
             this.#preProcessedDataSet = preProcessedDataSet;
             this.#createModel(training.samples, training.labels, featureNames, ModelTrainingSettings);
         }
-        else {
+        else if (args.length == 1) {
             /* Recibe el JSON para reconstruir */
-            this.#rebuildModel(arg);
+            this.#rebuildModel(args[0]);
+        }
+        else {
+            throw 'Error en parametros de constructor de modelo'
         }
     }
 
@@ -211,12 +225,13 @@ class DecisionTreeModel {
         };
     }
 
-    summary() {
+    summary(logger) {
+        let localLogger = MiscUtils.isNullOrUndef(logger) ? console.log : logger;
         MiscUtils.printHeader("Resultados de modelo")
-        console.log(`Muestras de entrenamiento: ${this.#trainingData.samples.length}`);
-        console.log(`Muestras de test: ${this.#testData.samples.length}`);
-        console.log(`Precision de entrenamiento: ${MiscUtils.trunc(this.#trainAccuracy * 100, 2)} % de acierto`);
-        console.log(`Precision de test: ${MiscUtils.trunc(this.#testAccuracy * 100, 2)} % de acierto`);
+        localLogger(`Muestras de entrenamiento: ${this.#trainingData.samples.length}`);
+        localLogger(`Muestras de test: ${this.#testData.samples.length}`);
+        localLogger(`Precision de entrenamiento: ${MiscUtils.trunc(this.#trainAccuracy * 100, 2)} % de acierto`);
+        localLogger(`Precision de test: ${MiscUtils.trunc(this.#testAccuracy * 100, 2)} % de acierto`);
     }
 
     /**
@@ -228,7 +243,7 @@ class DecisionTreeModel {
         });
 
         const path = !MiscUtils.isNullOrUndef(localSettings.dataSetExportPath) ?
-            localSettings.dataSetExportPath : DataSetExportPath;
+            localSettings.dataSetExportPath : paths.dataSetExportPath;
 
         MiscUtils.writeDataSetCSV(path, this.#dataSet);
     }
@@ -239,7 +254,7 @@ class DecisionTreeModel {
         });
 
         const path = !MiscUtils.isNullOrUndef(localSettings.preProcessedDataSetExportPath) ?
-            localSettings.preProcessedDataSetExportPath : PreProcessedDataSetExportPath;
+            localSettings.preProcessedDataSetExportPath : paths.preProcessedDataSetExport;
 
         MiscUtils.writeDataSetCSV(path, this.#preProcessedDataSet);
     }
@@ -248,7 +263,7 @@ class DecisionTreeModel {
         let localSettings = Object.assign({}, DataLoadingSettings, {
         });
         const path = !MiscUtils.isNullOrUndef(localSettings.dataSetExportPath) ?
-            localSettings.settingsExportPath : SettingsExportPath;
+            localSettings.settingsExportPath : paths.settingsExport;
         MiscUtils.writeJSON(path, this.toJSON());
     }
 
@@ -296,6 +311,7 @@ class DecisionTreeModel {
         this.#options = jsonSettings.options;
 
         if (!MiscUtils.isNullOrUndef(DataLoadingSettings.dataSetExportPath)) {
+            /* TODO Es necesario? */
             this.#dataSet = MiscUtils.readDataSetCSV(DataLoadingSettings.dataSetExportPath);
         }
 
@@ -331,7 +347,10 @@ class DecisionTreeModel {
 
 }
 
+const DecisionTreePaths = paths;
+
 module.exports = {
     DecisionTreeModel,
-    confusionMatrix
+    confusionMatrix,
+    DecisionTreePaths
 }

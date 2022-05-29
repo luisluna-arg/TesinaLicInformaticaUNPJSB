@@ -1,11 +1,8 @@
 const { Router } = require('express');
 const router = Router();
 const headsetClient = require("../lib");
-const { DecisionTreeModel } = require('../decisionTree/decision-tree-model');
+const { DecisionTreeModel, DecisionTreePaths } = require('../decisionTree/decision-tree-model');
 const MiscUtils = require('../decisionTree/misc-utils');
-const validations = require("../misc/validations-utils");
-const firestore = require("../firestore/firestore");
-
 const path = require("path");
 
 // Include file system to write json data
@@ -29,7 +26,7 @@ const logger = fs.createWriteStream(dateDir + sampletType + '.json', {
 })
 
 let decisionTreeJSON = null;
-const filePath = './src/decisionTree/data/decisiontree-settings.json';
+const filePath = DecisionTreePaths.settingsExport;
 const modelSettings = MiscUtils.readJSON(filePath);
 decisionTreeJSON = new DecisionTreeModel(modelSettings);
 
@@ -40,7 +37,7 @@ client.on("data", (sensedData) => {
     let sample = {
         ts: (new Date).toISOString()
     };
-    let record = {...sample, ...sensedData };
+    let record = { ...sample, ...sensedData };
     responseSamples.push(record);
 
     if (typeof record.poorSignalLevel != 'undefined' && record.poorSignalLevel == 0) {
@@ -59,13 +56,16 @@ router.get("/single", (req, res) => {
     res.json(responseSamples[responseSamples.length - 1]);
 });
 
+function isNullOrUndef(value) {
+    return typeof value == 'undefined' || value == null;
+}
+
 router.get("/getDirection", (req, res) => {
-    let ts = (new Date).toISOString();
-    if (!validations.isNullOrUndef(responseSamples) &&
+    let result = 0;
+    if (!isNullOrUndef(responseSamples) &&
         responseSamples.length > 0) {
         let sample = responseSamples[responseSamples.length - 1];
-        firestore.save(sample, "test", ts);
-        if (!validations.isNullOrUndef(sample) && !validations.isNullOrUndef(sample.eegPower)) {
+        if (!isNullOrUndef(sample) && !isNullOrUndef(sample.eegPower)) {
             let eeg = sample.eegPower;
             let signals = [
                 eeg.delta,
@@ -77,12 +77,17 @@ router.get("/getDirection", (req, res) => {
                 eeg.lowGamma,
                 eeg.highGamma
             ];
-            let { resample, result } = decisionTreeJSON.predict(signals);
+            result = decisionTreeJSON.predict(signals);
             console.log("result", result);
-            firestore.save(resample, "test-resample", ts);
-            firestore.save(result, "test-result", ts);
+        }
+        else {
+            console.log("sample", sample);
         }
     }
+    else {
+        console.log("responseSamples", responseSamples);
+    }
+
     res.json(result);
 });
 

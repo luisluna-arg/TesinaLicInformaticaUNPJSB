@@ -1,4 +1,7 @@
 node_server_engine/node_modules
 node_server_engine/src/config/firebase.config.js
-node_server_engine/src/config/firebase.config.js
-node_server_engine/src/config/firebase.config.js
+node_server_engine/src/decisionTree/data/trained-model/decisiontree-data.csv
+node_server_engine/src/decisionTree/data/trained-model/decisiontree-preprocessed-data.csv
+node_server_engine/src/decisionTree/data/trained-model/decisiontree-settings.json
+IGNORE_*.*
+IGNORE_*/

@@ -2,7 +2,7 @@ const net = require("net"),
     events = require("events"),
     util = require("util");
 
-let headsetClient = function(opts) {
+let headSetClient = function (opts) {
     opts || (opts = {});
     this.port = opts.port || 13854; //EEG default port
     this.host = opts.host || "localhost"; //Listen server
@@ -15,9 +15,9 @@ let headsetClient = function(opts) {
     events.EventEmitter.call(this);
 };
 
-util.inherits(headsetClient, events.EventEmitter);
+util.inherits(headSetClient, events.EventEmitter);
 //Connector server, data as specified by TGSP protocol.
-headsetClient.prototype.connect = function() {
+headSetClient.prototype.connect = function () {
     let self = this,
         client = this.client = net.connect(this.port, this.host, () => {
             client.write(JSON.stringify(self.config));
@@ -28,11 +28,11 @@ headsetClient.prototype.connect = function() {
             if (json["rawEeg"]) {
                 self.emit("raw_data", json);
             } else
-            if (json["blinkStrength"]) {
-                self.emit("blink_data", json);
-            } else {
-                self.emit("data", json);
-            }
+                if (json["blinkStrength"]) {
+                    self.emit("blink_data", json);
+                } else {
+                    self.emit("data", json);
+                }
         } catch (e) {
             self.emit('Parse error', data.toString())
         }
@@ -40,7 +40,7 @@ headsetClient.prototype.connect = function() {
 };
 
 const createClient = function (opts) {
-    return new headsetClient(opts || {});
+    return new headSetClient(opts || {});
 }
 
-module.exports = { headsetClient: headsetClient,createClient};
+module.exports = { headsetClient: headSetClient, createClient };

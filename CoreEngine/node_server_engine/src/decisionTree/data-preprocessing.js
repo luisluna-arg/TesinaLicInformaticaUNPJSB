@@ -108,27 +108,32 @@ function dataAugmentation(samples, settings) {
     // Here we generate 5 synthetic data points to bolster our training data with an balance an imbalanced data set.
     const byLabel = _.groupBy(samples, (item) => item[item.length - 1]);
 
+    let maxSamplesCount = Object.keys(byLabel).map(k => byLabel[k].length).reduce((a, b) => Math.max(a, b));
+    maxSamplesCount = Math.max(settings.dataAugmentationTotal, maxSamplesCount);
+    let counter = 0;
+    while (counter < maxSamplesCount) {
+        counter += 500;
+    }
+    maxSamplesCount = counter;
+
     for (const label in byLabel) {
         let labelGroup = byLabel[label].map(sample => sample.slice(0, sample.length - 1));
-        const countToGenerate = settings.dataAugmentationTotal - labelGroup.length;
+        const countToGenerate = maxSamplesCount - labelGroup.length;
 
-        if (countToGenerate <= 0) return labelGroup;
+        if (countToGenerate > 0) {
+            // Pass in your real data vectors.
+            const smote = new SMOTE(labelGroup);
 
-        // Pass in your real data vectors.
-        const smote = new SMOTE(labelGroup);
+            let newVectors;
 
-        let newVectors;
+            tf.tidy(() => {
+                newVectors = smote.generate(countToGenerate).
+                    map(vector => [...vector, parseInt(label)]
+                    );
+            });
 
-        tf.tidy(() => {
-            newVectors = smote.generate(countToGenerate).
-                map(vector => {
-                    /* Tipo movimiento */
-                    vector.push(parseInt(label));
-                    return vector;
-                });
-        });
-
-        samples = samples.concat(newVectors);
+            samples = samples.concat(newVectors);
+        }
     }
     return samples;
 }
@@ -271,7 +276,7 @@ function remapLower(samples, featureNames) {
 
         result = samples.map((sample, i) => {
             const featValues = sample.slice(0, featureNames.length);
-            const doRemap = featValues.filter((feat, i) => feat > featureMoments[i].median).length > 0;
+            const doRemap = featValues.filter((feat, i) => feat < featureMoments[i].std).length == featValues.length;
             let result = [...featValues, doRemap ? 0 : sample[sample.length - 1]];
             return result;
         });
@@ -281,33 +286,6 @@ function remapLower(samples, featureNames) {
         data: result,
         featureStats: featureMoments
     };
-}
-
-function removeLower(samples, featureNames) {
-    let result = samples;
-    tf.tidy(() => {
-        let featureMoments = featureNames.map((f, i) => {
-            let values = samples.map(s => s[i]);
-            let orderedValues = _.orderBy(values);
-
-            const { mean, variance } = tf.moments(tf.tensor(values));
-            return {
-                mean: mean.arraySync(),
-                std: tf.sqrt(variance).arraySync(),
-                min: _.min(values),
-                max: _.max(values),
-                median: orderedValues[Math.floor(orderedValues.length / 2)],
-                q1: orderedValues[Math.floor(orderedValues.length / 4)],
-                q3: orderedValues[Math.floor(orderedValues.length / 4 * 3)],
-            }
-        });
-
-
-        result = samples.filter(o => {
-            return o.slice(0, featureNames.length).filter((f, i) => f > featureMoments[i].median).length > 0
-        });
-    });
-    return result;
 }
 
 /**
@@ -416,7 +394,7 @@ function refactorSample(sample, preProcessData) {
 
 function confusionMatrix(predictionLabels, realLabels) {
     let result = null;
-    
+
     let out;
     let distinctValues = [...new Set([...predictionLabels, ...realLabels])];
     if (distinctValues.length === 1) {
@@ -440,7 +418,6 @@ function confusionMatrix(predictionLabels, realLabels) {
             const labels = tf.tensor1d(realLabels.map(o => o), 'int32');
             const predictions = tf.tensor1d(predictionLabels.map(o => o), 'int32');
             const numClasses = _.max([...new Set([...predictionLabels, ...realLabels])]) + 1;
-
             out = tf.math.confusionMatrix(labels, predictions, numClasses).arraySync();
         });
     }

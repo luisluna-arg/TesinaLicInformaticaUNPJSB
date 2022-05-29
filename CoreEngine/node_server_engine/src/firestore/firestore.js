@@ -1,6 +1,6 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc } from 'firebase/firestore/lite';
-import { firebaseConfig } from "../config/firebase.config.js"
+const { initializeApp } = require('firebase/app');
+const { getFirestore, doc, setDoc } = require('firebase/firestore/lite');
+const { firebaseConfig } = require("../config/firebase.config.js");
 
 const app = initializeApp(firebaseConfig);
 const database = getFirestore(app);

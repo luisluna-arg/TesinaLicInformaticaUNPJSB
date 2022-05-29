@@ -1,14 +1,27 @@
 /* HELPER FUNCTIONS */
 /* //////////////// */
-const printHeader = function (header) {
+const printHeader = function (header, printTime) {
     console.log("");
-    console.log(header);
-    console.log(new Array(header.length).fill("=").join(''));
+    let text;
+    if (printTime) {
+        text = `${header} - ${(new Date()).toLocaleString()}`;
+    }
+    else {
+        text = `${header}`;
+    }
+    console.log(text);
+    console.log(new Array(text.length).fill("=").join(''));
 }
 
-const printSubHeader = function (subheader) {
+const printSubHeader = function (subheader, printTime) {
     console.log("");
-    console.log("> " + subheader);
+
+    if (printTime) {
+        console.log(`> ${subheader} - ${(new Date()).toLocaleString()}`);
+    }
+    else {
+        console.log(`> ${subheader}`);
+    }
 }
 
 const isNullOrUndef = function (value) {
@@ -37,13 +50,13 @@ function readDataSetCSV(filePath) {
         let fileData = fs.readFileSync(filePath, { encoding: 'utf-8' });
         let result = fileData.split(';').
             map(l => l.split(',').
-            map(v => (v.indexOf('.') >= 0) ? parseFloat(v) : parseInt(v)));
+                map(v => (v.indexOf('.') >= 0) ? parseFloat(v) : parseInt(v)));
 
-        
+
         return result;
     }
     else {
-        throw 'Archivo no encontrado';
+        throw `Archivo CSV no encontrado: ${filePath}`;
     }
 }
 
@@ -65,7 +78,7 @@ function readJSON(filePath) {
         return result;
     }
     else {
-        throw 'Archivo no encontrado';
+        throw `Archivo JSON no encontrado: ${filePath}`;
     }
 }
 
@@ -76,6 +89,33 @@ function writeJSON(filePath, jsonData) {
     }
 
     fs.writeFileSync(filePath, JSON.stringify(jsonData), { encoding: 'utf-8' });
+}
+
+function writeTextFile(filePath, text) {
+    var fs = require("fs");
+    if (fs.existsSync(filePath) && fs.accessSync(filePath)) {
+        fs.unlink(filePath);
+    }
+
+    fs.appendFileSync(filePath, text.toString() + "\n", { encoding: 'utf-8' });
+}
+
+const writeTextFileHeader = function (filePath, header) {
+    writeTextFile(filePath, "");
+    writeTextFile(filePath, header);
+    writeTextFile(filePath, new Array(header.length).fill("=").join(''));
+}
+
+const writeTextFileSubHeader = function (filePath, subheader) {
+    writeTextFile(filePath, "");
+    writeTextFile(filePath, "> " + subheader);
+}
+
+const mkdir = function (dirPath) {
+    let fs = require('fs');
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath);
+    }
 }
 
 /* /////////////////////////////////////////////////////////////////// */
@@ -89,5 +129,9 @@ module.exports = {
     readDataSetCSV,
     writeDataSetCSV,
     readJSON,
-    writeJSON
-}
+    writeJSON,
+    writeTextFile,
+    writeTextFileHeader,
+    writeTextFileSubHeader,
+    mkdir
+};
