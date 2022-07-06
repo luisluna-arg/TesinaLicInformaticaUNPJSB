@@ -2,13 +2,28 @@
   <div>
     <div id="input-bar" class="input-bar">
       <label>Lectura vivo: </label>
-      <input type="checkbox" id="liveChart" v-model="liveChart" @change="onChange_FromDisk" >
+      <input
+        type="checkbox"
+        id="liveChart"
+        v-model="liveChart"
+        @change="onChange_FromDisk"
+      />
       <label>Interv. actualiz. (ms): </label>
       <input v-model.number="updateInterval" readonly type="number" />
       <label>Muestras: </label>
-      <input v-model.number="sampleCount" @change="onChange_SampleCout" type="number" />
+      <input
+        v-model.number="sampleCount"
+        @change="onChange_SampleCout"
+        type="number"
+      />
       <label for="jsonFile">JSON: </label>
-      <input type="file" id="jsonFile" name="jsonFile" accept=".json" @change="onChange_JsonFile">
+      <input
+        type="file"
+        id="jsonFile"
+        name="jsonFile"
+        accept=".json"
+        @change="onChange_JsonFile"
+      />
     </div>
     <div id="stats-bar">
       <label>Atención: </label>
@@ -38,7 +53,7 @@ import * as tf from "@tensorflow/tfjs";
 
 const CONSTANTS = {
   CHART_DOM_ID: "data-container",
-  DATA_URL: "http://localhost:13854/all", 
+  DATA_URL: "http://localhost:13854/all",
   MAX_SAMPLE_COUNT: 10,
   UPDATE_INTERVAL: 2000,
 };
@@ -111,9 +126,9 @@ function onChange_SampleCout() {
   dataUrl.value = CONSTANTS.DATA_URL + "?size=" + sampleCount.value;
 }
 
-function onChange_FromDisk(e){
-  console.log(e);
-} 
+function onChange_FromDisk() {
+  // console.log(e);
+}
 
 function onFileReaderLoad(e) {
   staticData.value = JSON.parse(e.target.result);
@@ -243,58 +258,71 @@ function processChartRequest(response) {
     for (let i = 0; i < response.data.length; i++) {
       let data = response.data[i];
 
-      samples.push([
-        data.eegPower.lowAlpha,
-        data.eegPower.highAlpha,
-        data.eegPower.lowBeta,
-        data.eegPower.highBeta,
-        data.eegPower.lowGamma,
-        data.eegPower.highGamma
-      ]);
+      if (data.poorSignalLevel == 0) {
+        samples.push([
+          data.eegPower.lowAlpha,
+          data.eegPower.highAlpha,
+          data.eegPower.lowBeta,
+          data.eegPower.highBeta,
+          data.eegPower.lowGamma,
+          data.eegPower.highGamma,
+        ]);
 
-      lowAlpha.data.push(new DataSetItem(moment(data.ts)._d, data.eegPower.lowAlpha));
-      highAlpha.data.push(new DataSetItem(moment(data.ts)._d, data.eegPower.highAlpha));
-      lowBeta.data.push(new DataSetItem(moment(data.ts)._d, data.eegPower.lowBeta));
-      highBeta.data.push(new DataSetItem(moment(data.ts)._d, data.eegPower.highBeta));
-      lowGamma.data.push(new DataSetItem(moment(data.ts)._d, data.eegPower.lowGamma));
-      highGamma.data.push(new DataSetItem(moment(data.ts)._d, data.eegPower.highGamma));
+        let timeStamp = moment(data.ts)._d;
+
+        lowAlpha.data.push(new DataSetItem(timeStamp, data.eegPower.lowAlpha));
+        highAlpha.data.push(
+          new DataSetItem(timeStamp, data.eegPower.highAlpha)
+        );
+        lowBeta.data.push(new DataSetItem(timeStamp, data.eegPower.lowBeta));
+        highBeta.data.push(new DataSetItem(timeStamp, data.eegPower.highBeta));
+        lowGamma.data.push(new DataSetItem(timeStamp, data.eegPower.lowGamma));
+        highGamma.data.push(
+          new DataSetItem(timeStamp, data.eegPower.highGamma)
+        );
+      } else {
+        console.error(`Error de escaneo de casco EEG`);
+      }
     }
 
     updateChart([lowAlpha, highAlpha, lowBeta, highBeta, lowGamma, highGamma]);
 
     if (response.data.length > 0) {
       let latestData = response.data[response.data.length - 1];
-      attention.value = latestData.eSense.attention;
-      meditation.value = latestData.eSense.meditation;
+      if (latestData.poorSignalLevel == 0) {
+        attention.value = latestData.eSense.attention;
+        meditation.value = latestData.eSense.meditation;
+      }
     }
 
-    let meanTFVal = null;
-    let varianceTFVal = null;
-    let devStdTFVal = null;
-    tf.tidy(() => {
-      const { mean, variance } = tf.moments(samples);
-      const devStd = tf.sqrt(variance);
+    if (samples.length > 0) {
+      let meanTFVal = null;
+      let varianceTFVal = null;
+      let devStdTFVal = null;
+      tf.tidy(() => {
+        const { mean, variance } = tf.moments(samples);
+        const devStd = tf.sqrt(variance);
 
-      meanTFVal = mean.dataSync()[0];
-      varianceTFVal = variance.dataSync()[0];
-      devStdTFVal = devStd.dataSync()[0];
-    });
+        meanTFVal = mean.dataSync()[0];
+        varianceTFVal = variance.dataSync()[0];
+        devStdTFVal = devStd.dataSync()[0];
+      });
 
-    meanVal.value = parseFloat(meanTFVal.toFixed(2));
-    varianceVal.value = parseFloat(varianceTFVal.toFixed(2));
-    devStdVal.value = parseFloat(devStdTFVal.toFixed(2));
+      meanVal.value = parseFloat(meanTFVal.toFixed(2));
+      varianceVal.value = parseFloat(varianceTFVal.toFixed(2));
+      devStdVal.value = parseFloat(devStdTFVal.toFixed(2));
+    }
   }
 }
 
 let createRequest;
 createRequest = function () {
-  if (liveChart.value){
+  if (liveChart.value) {
     axios.get(dataUrl.value).then((response) => {
       processChartRequest(response);
       setTimeout(createRequest, updateInterval.value);
     });
-  }
-  else {
+  } else {
     processChartRequest({ data: staticData.value });
     setTimeout(createRequest, updateInterval.value);
   }
@@ -330,7 +358,7 @@ export default {
       devStdVal,
       onChange_FromDisk,
       onChange_JsonFile,
-      onChange_SampleCout
+      onChange_SampleCout,
     };
   },
 };
@@ -361,7 +389,8 @@ label {
   position: relative;
   overflow: hidden;
 }
-#input-bar, #stats-bar {
+#input-bar,
+#stats-bar {
   padding-top: 10px;
 }
 
@@ -384,5 +413,4 @@ label {
   margin-right: 1vw;
   width: 100px;
 }
-
 </style>
